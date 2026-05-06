@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animalerie - Adoption Papillons</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+        button { padding: 8px 10px; border: none; border-radius: 6px; cursor: pointer; background: #0f766e; color: #fff; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>Animalerie externe - Adoption</h1>
+    <p id="status">Chargement...</p>
+
+    <h2>Papillons disponibles (source elevage)</h2>
+    <div id="papillons" class="grid"></div>
+
+    <h2>Adoptions enregistrees (animalerie)</h2>
+    <ul id="adoptions"></ul>
+
+    <script>
+        async function fetchJSON(url, options = {}) {
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.detail || "Erreur API");
+            return data;
+        }
+
+        async function loadPapillons() {
+            const list = document.getElementById("papillons");
+            const status = document.getElementById("status");
+            try {
+                const papillons = await fetchJSON("/api/papillons/disponibles/");
+                status.textContent = papillons.length
+                    ? `${papillons.length} papillon(s) disponible(s).`
+                    : "Aucun papillon disponible.";
+
+                list.innerHTML = papillons.map((p) => `
+                    <div class="card">
+                        <h3>${p.nom}</h3>
+                        <p><strong>Espece:</strong> ${p.espece}</p>
+                        <p><strong>Lieu:</strong> ${p.lieu}</p>
+                        <button onclick="adopter(${p.id})">Adopter</button>
+                    </div>
+                `).join("");
+            } catch (error) {
+                status.textContent = error.message;
+                list.innerHTML = "";
+            }
+        }
+
+        async function loadAdoptions() {
+            const list = document.getElementById("adoptions");
+            try {
+                const adoptions = await fetchJSON("/api/adoptions/");
+                list.innerHTML = adoptions.map((a) =>
+                    `<li>#${a.id} - ${a.nom} (${a.espece}) [source ${a.source}]</li>`
+                ).join("") || "<li>Aucune adoption.</li>";
+            } catch (error) {
+                list.innerHTML = `<li>${error.message}</li>`;
+            }
+        }
+
+        async function adopter(id) {
+            try {
+                await fetchJSON(`/api/adoptions/adopter/${id}/`, { method: "POST" });
+                await loadPapillons();
+                await loadAdoptions();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        loadPapillons();
+        loadAdoptions();
+    </script>
+</body>
+</html>

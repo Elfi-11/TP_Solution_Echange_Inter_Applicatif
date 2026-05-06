@@ -1,0 +1,55 @@
+services:
+  elevage_web:
+    build: .
+    entrypoint: /app/entrypoint.sh
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_DB: Inter_Applicatif
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_HOST: elevage_db
+      POSTGRES_PORT: 5432
+    depends_on:
+      - elevage_db
+    networks:
+      default:
+        aliases:
+          - elevage-web
+
+  elevage_db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: Inter_Applicatif
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+
+  animalerie_web:
+    build: .
+    working_dir: /app/animalerie
+    command: >
+      sh -c "while ! nc -z animalerie_db 5432; do sleep 1; done &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8001"
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_DB: animalerie_db
+      POSTGRES_USER: animalerie
+      POSTGRES_PASSWORD: animalerie
+      POSTGRES_HOST: animalerie_db
+      POSTGRES_PORT: 5432
+      ELEVAGE_API_BASE_URL: http://elevage-web:8000
+    depends_on:
+      - animalerie_db
+
+  animalerie_db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: animalerie_db
+      POSTGRES_USER: animalerie
+      POSTGRES_PASSWORD: animalerie

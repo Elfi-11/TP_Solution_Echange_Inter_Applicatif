@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papillons</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        img { max-width: 240px; border-radius: 6px; display: block; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Papillons</h1>
+    <div id="app">Chargement...</div>
+    <script>
+        async function loadPapillons() {
+            const app = document.getElementById("app");
+            try {
+                const response = await fetch("/api/papillons/");
+                const papillons = await response.json();
+
+                if (!papillons.length) {
+                    app.innerHTML = "<p>Aucun papillon.</p>";
+                    return;
+                }
+
+                app.innerHTML = papillons.map((p) => {
+                    const image = p.images?.[0];
+                    const sit = p.situations?.[0];
+                    return `
+                        <div class="card">
+                            <h3>${p.nom} (${p.espece})</h3>
+                            <p><strong>Couleur:</strong> ${p.couleur}</p>
+                            <p><strong>Date:</strong> ${p.date_observation}</p>
+                            <p><strong>Lieu libre:</strong> ${p.lieu}</p>
+                            <p><strong>Geo:</strong> ${sit ? `${sit.pays}, ${sit.region} [${sit.latitude}, ${sit.longitude}]` : "N/A"}</p>
+                            ${image ? `<img src="${image.image_url}" alt="${p.nom}">` : ""}
+                        </div>
+                    `;
+                }).join("");
+            } catch (error) {
+                app.innerHTML = "<p>Erreur de chargement API.</p>";
+            }
+        }
+
+        loadPapillons();
+    </script>
+</body>
+</html>
