@@ -1,69 +1,83 @@
-import json
-from urllib import error, request
+from django.shortcuts import get_object_or_404, redirect, render
+from django.core.management import call_command
+from django.views.decorators.http import require_POST
+from rest_framework import viewsets
+from fournisseurs.models import Papillon
 
-from django.conf import settings
-from rest_framework import generics, status
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from .models import Adoption
-from .serializers import AdoptionSerializer
+from .models import Animal, Espece
+from .serializers import AnimalSerializer, EspeceSerializer
 
 
-def _fetch_json(url, method="GET"):
-    req = request.Request(url, method=method)
-    req.add_header("Content-Type", "application/json")
-    with request.urlopen(req, timeout=10) as resp:
-        data = resp.read().decode("utf-8")
-        return json.loads(data) if data else {}
+class EspeceViewSet(viewsets.ModelViewSet):
+    queryset = Espece.objects.all().order_by("nom")
+    serializer_class = EspeceSerializer
 
 
-class ExternePapillonDisponibleListView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-
-    def get(self, request):
-        url = f"{settings.ELEVAGE_API_BASE_URL}/api/papillons/disponibles/"
-        try:
-            data = _fetch_json(url)
-            return Response(data, status=status.HTTP_200_OK)
-        except error.URLError:
-            return Response(
-                {"detail": "Service elevage indisponible."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+class AnimalViewSet(viewsets.ModelViewSet):
+    queryset = Animal.objects.select_related("espece").all().order_by("espece__nom", "nom")
+    serializer_class = AnimalSerializer
 
 
-class AdoptionListView(generics.ListAPIView):
-    queryset = Adoption.objects.order_by("-date_adoption")
-    serializer_class = AdoptionSerializer
-    permission_classes = [AllowAny]
-    authentication_classes = []
+def catalogue_centralise(request):
+    papillons = Animal.objects.select_related("espece").filter(
+        espece__nom="Papillon"
+    ).order_by("nom")
+
+    cats = Animal.objects.select_related("espece").filter(
+        espece__nom="Chat"
+    ).order_by("nom")
+
+    return render(request, "catalogue_centralise.html", {
+        "papillons": papillons,
+        "cats": cats,
+    })
+
+def synchroniser_catalogue(request):
+    if request.method == "POST":
+        call_command("sync_catalogue")
+
+    return redirect("catalogue-centralise")
+
+def home_animalerie(request):
+    papillons = Papillon.objects.filter(adopted=False).order_by("nom")
+
+    papillons_reserves = Animal.objects.select_related("espece").filter(
+        espece__nom="Papillon"
+    ).order_by("nom")
+
+    return render(request, "index.html", {
+        "papillons": papillons,
+        "papillons_reserves": papillons_reserves,
+    })
 
 
-class AdopterPapillonView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
+@require_POST
+def reserver_papillon(request, papillon_id):
+    papillon = get_object_or_404(Papillon, id=papillon_id)
 
-    def post(self, request, papillon_id):
-        adopter_url = f"{settings.ELEVAGE_API_BASE_URL}/api/papillons/{papillon_id}/adopter/"
-        try:
-            papillon = _fetch_json(adopter_url, method="POST")
-        except error.HTTPError as exc:
-            if exc.code == 409:
-                return Response({"detail": "Papillon deja adopte."}, status=status.HTTP_409_CONFLICT)
-            return Response({"detail": "Erreur API elevage."}, status=status.HTTP_502_BAD_GATEWAY)
-        except error.URLError:
-            return Response(
-                {"detail": "Service elevage indisponible."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+    papillon.adopted = True
+    papillon.save(update_fields=["adopted"])
 
-        adoption = Adoption.objects.create(
-            papillon_source_id=papillon["id"],
-            nom=papillon["nom"],
-            espece=papillon["espece"],
-            source="elevage",
-        )
-        return Response(AdoptionSerializer(adoption).data, status=status.HTTP_201_CREATED)
+    espece_papillon, _ = Espece.objects.get_or_create(nom="Papillon")
+
+    Animal.objects.update_or_create(
+        source="papillons_api",
+        source_id=papillon.id,
+        defaults={
+            "espece": espece_papillon,
+            "nom": papillon.nom,
+            "race": papillon.espece,
+            "age": None,
+            "couleur": papillon.couleur,
+            "particularite": "",
+            "prix": papillon.prix,
+            "provenance": papillon.provenance,
+            "pays": "",
+            "continent": "",
+            "regime_alim": "",
+            "taille_aquarium": "",
+            "adopted": True,
+        },
+    )
+
+    return redirect("home")

@@ -2,81 +2,146 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animalerie - Adoption Papillons</title>
+    <title>Animalerie externe - Adoption</title>
+
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
-        button { padding: 8px 10px; border: none; border-radius: 6px; cursor: pointer; background: #0f766e; color: #fff; }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f6f7fb;
+            color: #222;
+        }
+
+        h1 {
+            margin-bottom: 24px;
+        }
+
+        .nav {
+            margin-bottom: 32px;
+        }
+
+        .nav a {
+            display: inline-block;
+            background-color: #4f6bed;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-right: 8px;
+        }
+
+        .section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 32px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: #fafafa;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .reserve-button {
+            background-color: #4f6bed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .reserve-button:hover {
+            background-color: #3f5bd8;
+        }
+
+        .empty-message {
+            color: #777;
+            font-style: italic;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background-color: #eaf0ff;
+        }
     </style>
 </head>
 <body>
     <h1>Animalerie externe - Adoption</h1>
-    <p id="status">Chargement...</p>
 
-    <h2>Papillons disponibles (source elevage)</h2>
-    <div id="papillons" class="grid"></div>
+    <div class="nav">
+        <a href="{% url 'catalogue-centralise' %}">Catalogue centralisé</a>
+        <a href="/api/">API Root</a>
+    </div>
 
-    <h2>Adoptions enregistrees (animalerie)</h2>
-    <ul id="adoptions"></ul>
+    <section class="section">
+        <h2>Papillons disponibles</h2>
 
-    <script>
-        async function fetchJSON(url, options = {}) {
-            const response = await fetch(url, options);
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(data.detail || "Erreur API");
-            return data;
-        }
+        {% if papillons %}
+            {% for papillon in papillons %}
+                <article class="card">
+                    <h3>{{ papillon.nom }}</h3>
 
-        async function loadPapillons() {
-            const list = document.getElementById("papillons");
-            const status = document.getElementById("status");
-            try {
-                const papillons = await fetchJSON("/api/papillons/disponibles/");
-                status.textContent = papillons.length
-                    ? `${papillons.length} papillon(s) disponible(s).`
-                    : "Aucun papillon disponible.";
+                    <p><strong>Espèce :</strong> {{ papillon.espece }}</p>
+                    <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
+                    <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
+                    <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
+                    <p><strong>Date d’observation :</strong> {{ papillon.date_observation }}</p>
 
-                list.innerHTML = papillons.map((p) => `
-                    <div class="card">
-                        <h3>${p.nom}</h3>
-                        <p><strong>Espece:</strong> ${p.espece}</p>
-                        <p><strong>Lieu:</strong> ${p.provenance}</p>
-                        <button onclick="adopter(${p.id})">Adopter</button>
-                    </div>
-                `).join("");
-            } catch (error) {
-                status.textContent = error.message;
-                list.innerHTML = "";
-            }
-        }
+                    <form method="post" action="{% url 'reserver-papillon' papillon.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="reserve-button">
+                            Réserver pour l’animalerie
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p class="empty-message">Aucun papillon disponible.</p>
+        {% endif %}
+    </section>
 
-        async function loadAdoptions() {
-            const list = document.getElementById("adoptions");
-            try {
-                const adoptions = await fetchJSON("/api/adoptions/");
-                list.innerHTML = adoptions.map((a) =>
-                    `<li>#${a.id} - ${a.nom} (${a.espece}) [source ${a.source}]</li>`
-                ).join("") || "<li>Aucune adoption.</li>";
-            } catch (error) {
-                list.innerHTML = `<li>${error.message}</li>`;
-            }
-        }
+    <section class="section">
+        <h2>Papillons réservés dans l’animalerie</h2>
 
-        async function adopter(id) {
-            try {
-                await fetchJSON(`/api/adoptions/adopter/${id}/`, { method: "POST" });
-                await loadPapillons();
-                await loadAdoptions();
-            } catch (error) {
-                alert(error.message);
-            }
-        }
+        {% if papillons_reserves %}
+            {% for animal in papillons_reserves %}
+                <article class="card">
+                    <h3>{{ animal.nom }}</h3>
 
-        loadPapillons();
-        loadAdoptions();
-    </script>
+                    {% if animal.race %}
+                        <p><strong>Espèce :</strong> {{ animal.race }}</p>
+                    {% endif %}
+
+                    {% if animal.couleur %}
+                        <p><strong>Couleur :</strong> {{ animal.couleur }}</p>
+                    {% endif %}
+
+                    {% if animal.provenance %}
+                        <p><strong>Provenance :</strong> {{ animal.provenance }}</p>
+                    {% endif %}
+
+                    {% if animal.prix %}
+                        <p><strong>Prix :</strong> {{ animal.prix }} €</p>
+                    {% endif %}
+
+                    <span class="badge">Présent dans le catalogue animalerie</span>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p class="empty-message">Aucun papillon réservé pour le moment.</p>
+        {% endif %}
+    </section>
 </body>
 </html>

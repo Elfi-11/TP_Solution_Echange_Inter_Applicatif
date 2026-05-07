@@ -21,7 +21,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 32px;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -60,19 +60,49 @@
             font-style: italic;
         }
 
-        @media (max-width: 800px) {
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background-color: #eaf0ff;
+            margin-top: 8px;
+        }
+
+        .sync-form {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .sync-button {
+            background-color: #4f6bed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .sync-button:hover {
+            background-color: #3f5bd8;
+        }
+
+        @media (max-width: 900px) {
             .catalogue-grid {
                 grid-template-columns: 1fr;
-            }
-
-            body {
-                margin: 20px;
             }
         }
     </style>
 </head>
 <body>
     <h1>Catalogue centralisé</h1>
+
+    <form method="post" action="{% url 'synchroniser-catalogue' %}" class="sync-form">
+        {% csrf_token %}
+        <button type="submit" class="sync-button">
+            Synchroniser le catalogue
+        </button>
+    </form>
 
     <div class="catalogue-grid">
 
@@ -84,17 +114,23 @@
                     <article class="card">
                         <h3>{{ papillon.nom }}</h3>
 
-                        <p><strong>Espèce :</strong> {{ papillon.espece }}</p>
-                        <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
-                        <p><strong>Date d’observation :</strong> {{ papillon.date_observation }}</p>
-                        <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
-                        <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
-
-                        {% if papillon.adopted %}
-                            <p><strong>Statut :</strong> Adopté</p>
-                        {% else %}
-                            <p><strong>Statut :</strong> Disponible</p>
+                        {% if papillon.race %}
+                            <p><strong>Espèce / type :</strong> {{ papillon.race }}</p>
                         {% endif %}
+
+                        {% if papillon.couleur %}
+                            <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
+                        {% endif %}
+
+                        {% if papillon.provenance %}
+                            <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
+                        {% endif %}
+
+                        {% if papillon.prix %}
+                            <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
+                        {% endif %}
+
+                        <span class="badge">Présent dans l’animalerie</span>
                     </article>
                 {% endfor %}
             {% else %}
@@ -108,29 +144,27 @@
             {% if cats %}
                 {% for cat in cats %}
                     <article class="card">
-                        <h3>{{ cat.name }}</h3>
-
-                        {% if cat.breed %}
-                            <p><strong>Race :</strong> {{ cat.breed }}</p>
-                        {% endif %}
+                        <h3>{{ cat.nom }}</h3>
 
                         {% if cat.age %}
                             <p><strong>Âge :</strong> {{ cat.age }} ans</p>
+                        {% endif %}
+
+                        {% if cat.race %}
+                            <p><strong>Race :</strong> {{ cat.race }}</p>
                         {% endif %}
 
                         {% if cat.provenance %}
                             <p><strong>Provenance :</strong> {{ cat.provenance }}</p>
                         {% endif %}
 
-                        {% if cat.particularity %}
-                            <p><strong>Particularité :</strong> {{ cat.particularity }}</p>
+                        {% if cat.particularite %}
+                            <p><strong>Particularité :</strong> {{ cat.particularite }}</p>
                         {% endif %}
 
-                        {% if cat.is_adopted %}
-                            <p><strong>Statut :</strong> Adopté</p>
-                        {% else %}
-                            <p><strong>Statut :</strong> Disponible</p>
-                        {% endif %}
+                        <p><strong>Source :</strong> {{ cat.source }} #{{ cat.source_id }}</p>
+
+                        <span class="badge">Présent dans l’animalerie</span>
                     </article>
                 {% endfor %}
             {% else %}

@@ -6,7 +6,6 @@ from .views import (
     PapillonDisponibleListView,
     PapillonListCreateView,
     health,
-    catalogue_centralise,
 )
 
 urlpatterns = [
@@ -17,6 +16,9 @@ urlpatterns = [
         PapillonDisponibleListView.as_view(),
         name="papillon-disponible-list",
     ),
-    path("papillons/<int:pk>/adopter/", PapillonAdopterView.as_view(), name="papillon-adopter"),
-    path("catalogue/", views.catalogue_centralise, name="catalogue-centralise"),
+    path(
+        "papillons/<int:pk>/adopter/",
+        PapillonAdopterView.as_view(),
+        name="papillon-adopter",
+    ),
 ]

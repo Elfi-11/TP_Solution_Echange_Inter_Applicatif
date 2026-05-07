@@ -1,9 +1,26 @@
 from django.contrib import admin
 
-from .models import Adoption
+from .models import Animal, Espece
 
 
-@admin.register(Adoption)
-class AdoptionAdmin(admin.ModelAdmin):
-    list_display = ("id", "papillon_source_id", "nom", "espece", "source", "date_adoption")
-    search_fields = ("nom", "espece", "source")
+@admin.register(Espece)
+class EspeceAdmin(admin.ModelAdmin):
+    list_display = ("id", "nom")
+    search_fields = ("nom",)
+
+
+@admin.register(Animal)
+class AnimalAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "nom",
+        "espece",
+        "race",
+        "age",
+        "provenance",
+        "adopted",
+        "source",
+        "source_id",
+    )
+    list_filter = ("espece", "adopted", "source")
+    search_fields = ("nom", "race", "provenance", "source")

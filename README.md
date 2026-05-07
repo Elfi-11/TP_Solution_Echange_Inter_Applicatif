@@ -1,33 +1,29 @@
-# TP - Solution Echange Inter Applicatif
+# TP - Solution Échange Inter Applicatif
 
-README pour installer, lancer et tester le projet Docker Compose.
+Ce projet illustre une communication entre plusieurs services Django/DRF séparés.
 
-## Objectif du projet
+L'objectif principal est de simuler une **animalerie centrale** qui récupère et référence des animaux provenant de plusieurs sources applicatives indépendantes :
 
-Ce projet simule un échange inter-applicatif entre plusieurs services Django REST Framework.
+- un service **Élevage** pour les papillons ;
+- un service **Animalerie** qui centralise les animaux réservés/adoptés ;
+- un projet externe **Chats** exposé sur un autre port.
 
-Il contient notamment :
-
-- un service **Elevage** qui expose une API de papillons ;
-- un service **Animalerie** qui consomme l'API Elevage ;
-- une app **Fournisseurs** utilisée pour centraliser les données ;
-- une page de catalogue centralisé qui affiche :
-  - les papillons du projet Animalerie/Fournisseurs ;
-  - les chats récupérés depuis un projet Django externe lancé séparément.
-
-Le projet chats reste volontairement séparé. Il représente une autre entité applicative qui ne partage pas directement sa base de données avec Animalerie. La communication se fait donc via API REST.
+Les bases de données restent séparées. La centralisation se fait par API puis par synchronisation dans la base de l'animalerie.
 
 ---
 
-## Prerequis
+## Prérequis
 
 - Docker
 - Docker Compose
-- Le projet chats lancé séparément si la page centralisée doit afficher les chats externes
+- Lancer le projet Chat : https://github.com/SellierL/Chat
+- Un navigateur web
+- Une fichier .env à la racine du dossier
+- Optionnel : DBeaver pour consulter les bases PostgreSQL
 
 ---
 
-## Installation et lancement
+## Lancement du projet
 
 Depuis la racine du projet :
 
@@ -35,102 +31,96 @@ Depuis la racine du projet :
 docker compose up --build
 ```
 
-Le premier demarrage peut prendre quelques minutes : build des images, attente des bases PostgreSQL, migrations, seed, puis lancement des serveurs Django.
+Le premier démarrage peut prendre quelques minutes : build des images, initialisation PostgreSQL, migrations et seed de données.
 
-Pour relancer en arriere-plan :
-
-```bash
-docker compose up -d --build
-```
-
----
-
-## Arreter le projet
+Pour arrêter les services :
 
 ```bash
 docker compose down
 ```
 
-Pour supprimer aussi les volumes de base de donnees :
+Pour reconstruire proprement :
 
 ```bash
-docker compose down -v
+docker compose down
+docker compose up --build
 ```
 
-Attention : `down -v` supprime les donnees PostgreSQL.
+---
+
+## Architecture générale
+
+```txt
+Service Élevage - port 8000
+├── Gère les papillons à la source
+├── Expose l'API papillons
+└── Permet de passer un papillon en adopted=True
+
+Service Animalerie - port 8001
+├── Affiche les papillons disponibles
+├── Permet de réserver un papillon pour l'animalerie
+├── Contient la base centrale Animal / Espece
+├── Synchronise les chats adoptés depuis le projet chats
+└── Affiche le catalogue centralisé
+
+Projet Chats externe - port 8002
+├── Gère les propriétaires, chats et refuge
+├── Expose l'API chats
+└── Les chats avec is_adopted=True peuvent être importés dans l'animalerie
+```
 
 ---
 
-## Ports utilises
+## Ports utilisés
 
-### Projet actuel : Elevage + Animalerie
+### Services web
 
-| Service | Role | Port local | Port conteneur |
-|---|---|---:|---:|
-| `elevage_web` | API Django Elevage | `8000` | `8000` |
-| `animalerie_web` | API Django Animalerie + catalogue centralise | `8001` | `8001` |
-| `elevage_db` | PostgreSQL Elevage | `5432` | `5432` |
-| `animalerie_db` | PostgreSQL Animalerie | `5433` | `5432` |
+| Service | URL | Rôle |
+|---|---|---|
+| Élevage | http://localhost:8000/ | Source papillons |
+| Animalerie | http://localhost:8001/ | Interface animalerie centrale |
+| Projet chats externe | http://localhost:8002/ | Source chats |
 
-### Projet chats externe
+### Bases PostgreSQL
 
-Le projet chats est lance dans un autre dossier/projet Docker Compose.
+| Base | Host DBeaver | Port | Database | User | Password |
+|---|---|---:|---|---|---|
+| Élevage | `localhost` | `5432` | `Inter_Applicatif` | `admin` | `admin` |
+| Animalerie centrale | `localhost` | `5433` | `animalerie_db` | `animalerie` | `animalerie` |
+| Chats - base principale | `localhost` | `5434` | selon `.env` du projet chats | selon `.env` | selon `.env` |
+| Chats - refuge | `localhost` | `5435` | selon `.env` du projet chats | selon `.env` | selon `.env` |
 
-| Service | Role | Port local | Port conteneur |
-|---|---|---:|---:|
-| `web` / `cats_web` | API Django Chats | `8002` | `8000` |
-| `db` / `cat_db` | PostgreSQL Chats | `5434` | `5432` |
-| `shelter_db` | PostgreSQL Refuge | `5435` | `5432` |
-
-Les ports `5434` et `5435` servent surtout pour acceder aux bases depuis l'hote avec un outil comme DBeaver ou pgAdmin. Entre conteneurs Docker, les services continuent d'utiliser le port interne `5432`.
+> Depuis Django dans Docker, les bases utilisent le port interne `5432`. Les ports `5432`, `5433`, `5434` et `5435` sont les ports exposés côté machine hôte pour le navigateur, DBeaver ou les tests externes.
 
 ---
 
-## URLs du projet actuel
+## Routes web
 
-### Service Elevage
+### Service Élevage
 
-- Accueil : http://localhost:8000/
-- Admin : http://localhost:8000/admin/
-- API base : http://localhost:8000/api/
-- Health : http://localhost:8000/api/health/
-- Lister / creer les papillons : http://localhost:8000/api/papillons/
-- Papillons disponibles : http://localhost:8000/api/papillons/disponibles/
-- Adopter un papillon : `POST http://localhost:8000/api/papillons/<id>/adopter/`
+| Page | URL |
+|---|---|
+| Accueil élevage | http://localhost:8000/ |
+| Admin Django | http://localhost:8000/admin/ |
 
 ### Service Animalerie
 
-- Accueil : http://localhost:8001/
-- Admin : http://localhost:8001/admin/
-- API base : http://localhost:8001/api/
-- Papillons disponibles via Elevage : http://localhost:8001/api/papillons/disponibles/
-- Liste des adoptions : http://localhost:8001/api/adoptions/
-- Adopter un papillon : `POST http://localhost:8001/api/adoptions/adopter/<papillon_id>/`
+| Page | URL | Description |
+|---|---|---|
+| Accueil animalerie | http://localhost:8001/ | Liste les papillons disponibles et permet de les réserver |
+| Catalogue centralisé | http://localhost:8001/catalogue/ | Affiche les animaux présents dans la base centrale |
+| Synchronisation catalogue | `POST http://localhost:8001/catalogue/synchroniser/` | Lance la synchronisation des chats/papillons adoptés |
+| Admin Django | http://localhost:8001/admin/ | Administration Django |
 
-### Catalogue centralise
+### Projet chats externe
 
-- Page catalogue : http://localhost:8001/catalogue/
+| Page | URL |
+|---|---|
+| Dashboard principal | http://localhost:8002/ |
+| Connexion | http://localhost:8002/accounts/login/ |
+| Dashboard refuge | http://localhost:8002/shelter/ |
 
-Cette page centralise :
-
-- les papillons stockes dans l'app `fournisseurs` ;
-- les chats recuperes depuis l'API externe du projet chats.
-
----
-
-## URLs du projet chats externe
-
-Ces URLs ne sont disponibles que si le projet chats est lance separement.
-
-- Dashboard chats : http://localhost:8002/
-- API root : http://localhost:8002/api/
-- Owners : http://localhost:8002/api/owners/
-- Chats : http://localhost:8002/api/cats/
-- Chats du refuge : http://localhost:8002/api/shelter-cats/
-- Login : http://localhost:8002/accounts/login/
-- Dashboard refuge : http://localhost:8002/shelter/
-
-Identifiants de test du projet chats :
+Identifiants de test côté chats :
 
 ```txt
 username: admin_refuge
@@ -139,268 +129,109 @@ password: admin1234
 
 ---
 
-## Configuration importante
+## Routes API - Élevage
 
-### Communication entre Animalerie et le projet chats
-
-Dans le projet Animalerie, la page centralisee appelle l'API chats externe via :
-
-```python
-CATS_API_URL = os.getenv("CATS_API_URL", "http://host.docker.internal:8002/api/cats/")
-```
-
-Dans Docker Desktop sous Windows, `host.docker.internal` permet a un conteneur Docker d'appeler un service expose sur la machine hote.
-
-### ALLOWED_HOSTS cote projet chats
-
-Dans le projet chats, il faut autoriser les requetes venant de `host.docker.internal`.
-
-Pour un TP local, on peut utiliser temporairement :
-
-```python
-ALLOWED_HOSTS = ["*"]
-```
-
-Ou une version plus ciblee :
-
-```python
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "host.docker.internal",
-]
-```
-
-Sans cette configuration, l'appel vers `http://host.docker.internal:8002/api/cats/` peut renvoyer une erreur `400 Bad Request`.
-
-### PYTHONPATH pour l'app fournisseurs
-
-Comme `manage.py` du service Animalerie est lance depuis `/app/animalerie`, alors que l'app `fournisseurs` est placee au niveau `/app/fournisseurs`, le service `animalerie_web` doit avoir :
-
-```yaml
-PYTHONPATH: /app
-```
-
-Cela permet a Django d'importer correctement :
-
-```python
-include("fournisseurs.urls")
-```
-
----
-
-## Seed des papillons
-
-L'app `fournisseurs` contient une commande de seed pour inserer ou mettre a jour les donnees de papillons, images et situations geographiques.
-
-Commande :
-
-```bash
-docker compose exec animalerie_web python manage.py seed_papillons
-```
-
-Verification dans le shell Django :
-
-```bash
-docker compose exec animalerie_web python manage.py shell
-```
-
-Puis :
-
-```python
-from fournisseurs.models import Papillon
-
-Papillon.objects.count()
-
-for papillon in Papillon.objects.all():
-    print(papillon.nom, papillon.espece, papillon.prix)
-```
-
-Le seed a ete rendu idempotent avec `update_or_create`, afin de pouvoir etre relance sans creer de doublons.
-
----
-
-## Commandes utiles
-
-Voir tous les services :
-
-```bash
-docker compose ps
-```
-
-Voir les logs de tous les services :
-
-```bash
-docker compose logs -f
-```
-
-Voir les logs du service Animalerie :
-
-```bash
-docker compose logs -f animalerie_web
-```
-
-Redemarrer un service :
-
-```bash
-docker compose restart elevage_web
-docker compose restart animalerie_web
-```
-
-Executer une commande Django dans un conteneur :
-
-```bash
-docker compose exec elevage_web python manage.py showmigrations
-docker compose exec animalerie_web python manage.py showmigrations
-```
-
-Lancer le shell Django Animalerie :
-
-```bash
-docker compose exec animalerie_web python manage.py shell
-```
-
----
-
-## Test rapide : adoption d'un papillon
-
-Exemple de requete `POST` cote Animalerie :
-
-```bash
-curl.exe -X POST "http://localhost:8001/api/adoptions/adopter/4/"
-```
-
----
-
-## Tests rapides de disponibilite
-
-Tester l'API papillons Elevage :
-
-```bash
-curl.exe http://localhost:8000/api/papillons/disponibles/
-```
-
-Tester l'API papillons Animalerie :
-
-```bash
-curl.exe http://localhost:8001/api/papillons/disponibles/
-```
-
-Tester le catalogue centralise :
-
-```bash
-curl.exe http://localhost:8001/catalogue/
-```
-
-Tester l'API chats externe :
-
-```bash
-curl.exe http://localhost:8002/api/cats/
-```
-
----
-
-## Depannage courant
-
-### Le site `localhost:8001` est inaccessible
-
-Verifier que `animalerie_web` tourne :
-
-```bash
-docker compose ps
-```
-
-Puis regarder les logs :
-
-```bash
-docker compose logs animalerie_web
-```
-
-### Erreur `ModuleNotFoundError: No module named 'fournisseurs'`
-
-Verifier que le service `animalerie_web` contient :
-
-```yaml
-PYTHONPATH: /app
-```
-
-### Erreur `Model class fournisseurs.models.Papillon ... isn't in INSTALLED_APPS`
-
-Verifier que `fournisseurs` est bien declare dans le bon fichier :
+Base URL :
 
 ```txt
-animalerie/animalerie_config/settings.py
+http://localhost:8000/api/
 ```
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/health/` | Vérification santé du service |
+| GET | `/api/papillons/` | Liste des papillons |
+| POST | `/api/papillons/` | Création d'un papillon |
+| GET | `/api/papillons/disponibles/` | Liste des papillons avec `adopted=False` |
+| POST | `/api/papillons/<id>/adopter/` | Passe un papillon en `adopted=True` |
 
 Exemple :
 
-```python
-INSTALLED_APPS = [
-    ...
-    "fournisseurs",
-]
-```
-
-### Erreur `TemplateDoesNotExist: catalogue_centralise.html`
-
-Le template doit etre place ici :
-
-```txt
-animalerie/templates/catalogue_centralise.html
-```
-
-### Les papillons ne s'affichent pas
-
-Verifier que le seed a ete lance :
-
 ```bash
-docker compose exec animalerie_web python manage.py seed_papillons
+curl.exe -X POST "http://localhost:8000/api/papillons/1/adopter/"
 ```
-
-Puis verifier le nombre d'objets :
-
-```bash
-docker compose exec animalerie_web python manage.py shell
-```
-
-```python
-from fournisseurs.models import Papillon
-Papillon.objects.count()
-```
-
-### Les chats ne s'affichent pas
-
-Verifier que le projet chats tourne :
-
-```txt
-http://localhost:8002/api/cats/
-```
-
-Verifier aussi que le projet chats autorise `host.docker.internal` dans `ALLOWED_HOSTS`.
 
 ---
 
-## Resume de l'architecture
+## Routes API - Animalerie centrale
+
+Base URL :
 
 ```txt
-Projet Elevage
-http://localhost:8000
-        |
-        | API papillons
-        v
-Projet Animalerie / Fournisseurs
-http://localhost:8001
-        |
-        | API chats externe
-        v
-Projet Chats
-http://localhost:8002
+http://localhost:8001/api/
 ```
 
-Le catalogue centralise se trouve dans le projet Animalerie :
+### API des animaux centralisés
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/especes/` | Liste les espèces centrales : Chat, Papillon, etc. |
+| POST | `/api/especes/` | Crée une espèce |
+| GET | `/api/animaux/` | Liste les animaux stockés dans la base animalerie |
+| POST | `/api/animaux/` | Crée un animal dans la base animalerie |
+| GET | `/api/animaux/<id>/` | Détail d'un animal |
+| PUT/PATCH | `/api/animaux/<id>/` | Mise à jour d'un animal |
+| DELETE | `/api/animaux/<id>/` | Suppression d'un animal |
+
+### API papillons exposée côté animalerie
+
+Ces routes restent disponibles côté animalerie pour consulter ou réserver les papillons depuis le service fournisseur/papillons.
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/health/` | Vérification santé côté fournisseurs |
+| GET | `/api/papillons/` | Liste des papillons de la source fournisseurs |
+| GET | `/api/papillons/disponibles/` | Liste des papillons disponibles |
+| POST | `/api/papillons/<id>/adopter/` | Réserve/adopte un papillon |
+
+Exemple :
+
+```bash
+curl.exe -X POST "http://localhost:8001/api/papillons/1/adopter/"
+```
+
+---
+
+## Routes API - Projet chats externe
+
+Base URL :
 
 ```txt
+http://localhost:8002/api/
+```
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/` | API root DRF |
+| GET | `/api/owners/` | Liste des propriétaires |
+| GET | `/api/cats/` | Liste des chats |
+| GET | `/api/shelter-cats/` | Liste des chats transférés au refuge |
+
+Les chats sont importés dans l'animalerie centrale uniquement s'ils ont :
+
+```txt
+is_adopted=True
+```
+
+---
+
+## Résumé des URLs importantes
+
+```txt
+Élevage :
+http://localhost:8000/
+http://localhost:8000/api/papillons/
+http://localhost:8000/api/papillons/disponibles/
+
+Animalerie :
+http://localhost:8001/
 http://localhost:8001/catalogue/
-```
+http://localhost:8001/api/animaux/
+http://localhost:8001/api/especes/
+http://localhost:8001/api/papillons/disponibles/
 
-Il regroupe les donnees venant de plusieurs sources sans fusionner directement les bases de donnees.
+Chats :
+http://localhost:8002/
+http://localhost:8002/api/cats/
+http://localhost:8002/shelter/
+```
