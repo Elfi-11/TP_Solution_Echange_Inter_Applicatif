@@ -1,15 +1,21 @@
 services:
   elevage_web:
     build: .
-    entrypoint: /app/entrypoint.sh
+    working_dir: /app
+    command: >
+      sh -c "while ! nc -z elevage_db 5432; do sleep 1; done &&
+            python manage.py makemigrations papillons &&
+            python manage.py migrate &&
+            python manage.py seed_papillons &&
+            python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ./elevage_papillons:/app
     environment:
-      POSTGRES_DB: Inter_Applicatif
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ${ELEVAGE_POSTGRES_DB}
+      POSTGRES_USER: ${ELEVAGE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ELEVAGE_POSTGRES_PASSWORD}
       POSTGRES_HOST: elevage_db
       POSTGRES_PORT: 5432
     depends_on:
@@ -24,38 +30,87 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: Inter_Applicatif
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ${ELEVAGE_POSTGRES_DB}
+      POSTGRES_USER: ${ELEVAGE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ELEVAGE_POSTGRES_PASSWORD}
+    volumes:
+      - elevage_db_data:/var/lib/postgresql/data
 
-  animalerie_web:
+  fournisseur_web:
     build: .
-    working_dir: /app/animalerie
+    working_dir: /app
     command: >
-      sh -c "while ! nc -z animalerie_db 5432; do sleep 1; done &&
+      sh -c "while ! nc -z fournisseur_db 5432; do sleep 1; done &&
+            python manage.py makemigrations reservations &&
             python manage.py migrate &&
+            python manage.py sync_elevage_reservations &&
             python manage.py runserver 0.0.0.0:8001"
     ports:
       - "8001:8001"
     volumes:
-      - .:/app
+      - ./fournisseur_papillons:/app
     environment:
-      POSTGRES_DB: animalerie_db
-      POSTGRES_USER: animalerie
-      POSTGRES_PASSWORD: animalerie
-      POSTGRES_HOST: animalerie_db
+      POSTGRES_DB: ${FOURNISSEUR_POSTGRES_DB}
+      POSTGRES_USER: ${FOURNISSEUR_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${FOURNISSEUR_POSTGRES_PASSWORD}
+      POSTGRES_HOST: fournisseur_db
       POSTGRES_PORT: 5432
-      ELEVAGE_API_BASE_URL: http://elevage-web:8000
-      CATS_API_URL: http://host.docker.internal:8002/api/cats/
-      PYTHONPATH: /app
+      ELEVAGE_API_BASE_URL: ${ELEVAGE_API_BASE_URL}
     depends_on:
-      - animalerie_db
+      - fournisseur_db
+      - elevage_web
+    networks:
+      default:
+        aliases:
+          - fournisseur-web
 
-  animalerie_db:
+  fournisseur_db:
     image: postgres:16
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: animalerie_db
-      POSTGRES_USER: animalerie
-      POSTGRES_PASSWORD: animalerie
+      POSTGRES_DB: ${FOURNISSEUR_POSTGRES_DB}
+      POSTGRES_USER: ${FOURNISSEUR_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${FOURNISSEUR_POSTGRES_PASSWORD}
+    volumes:
+      - fournisseur_db_data:/var/lib/postgresql/data
+
+  animalerie_web:
+    build: .
+    working_dir: /app
+    command: >
+      sh -c "while ! nc -z animalerie_db 5432; do sleep 1; done &&
+             python manage.py makemigrations catalogue &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8004"
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./animalerie_centrale:/app
+    environment:
+      POSTGRES_DB: ${ANIMALERIE_POSTGRES_DB}
+      POSTGRES_USER: ${ANIMALERIE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ANIMALERIE_POSTGRES_PASSWORD}
+      POSTGRES_HOST: animalerie_db
+      POSTGRES_PORT: 5432
+      FOURNISSEUR_PAPILLONS_API_URL: ${FOURNISSEUR_PAPILLONS_API_URL}
+      CATS_API_URL: ${CATS_API_URL}
+    depends_on:
+      - animalerie_db
+      - fournisseur_web
+
+  animalerie_db:
+    image: postgres:16
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_DB: ${ANIMALERIE_POSTGRES_DB}
+      POSTGRES_USER: ${ANIMALERIE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ANIMALERIE_POSTGRES_PASSWORD}
+    volumes:
+      - animalerie_db_data:/var/lib/postgresql/data
+
+volumes:
+  elevage_db_data:
+  fournisseur_db_data:
+  animalerie_db_data:

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fournisseur papillons</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f6f7fb;
+            color: #222;
+        }
+
+        h1 {
+            margin-bottom: 12px;
+        }
+
+        .nav {
+            margin: 24px 0;
+        }
+
+        .nav a {
+            display: inline-block;
+            background: #4f6bed;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-right: 8px;
+        }
+
+        .section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px #0001;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background: #fafafa;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .btn {
+            background: #4f6bed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #3f5bd8;
+        }
+
+        .danger-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .danger-button:hover {
+            background-color: #b02a37;
+        }
+
+        .empty {
+            color: #777;
+            font-style: italic;
+        }
+
+        .error {
+            background: #ffecec;
+            color: #8a1f1f;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .papillon-image {
+            width: 100%;
+            max-width: 360px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Fournisseur papillons</h1>
+
+    <p>
+        Ce service réserve des papillons depuis l'élevage et conserve localement
+        les papillons sélectionnés.
+    </p>
+
+    <div class="nav">
+        <a href="/api/papillons/disponibles/">API papillons disponibles</a>
+        <a href="/api/papillons-reserves/">API papillons réservés</a>
+    </div>
+
+    {% if erreur %}
+        <p class="error">{{ erreur }}</p>
+    {% endif %}
+
+    <section class="section">
+        <h2>Papillons disponibles depuis l'élevage</h2>
+
+        {% if papillons %}
+            {% for papillon in papillons %}
+                <article class="card">
+                    <h3>{{ papillon.nom }}</h3>
+
+                    {% if papillon.images %}
+                        <img
+                            src="{{ papillon.images.0.image_url }}"
+                            alt="{{ papillon.images.0.description|default:papillon.nom }}"
+                            class="papillon-image"
+                        >
+                    {% endif %}
+
+                    <p><strong>Espèce :</strong> {{ papillon.espece }}</p>
+                    <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
+                    <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
+                    <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
+
+                    <form method="post" action="{% url 'reserver-papillon-web' papillon.id %}">
+                        {% csrf_token %}
+                        <button class="btn" type="submit">
+                            Réserver pour le fournisseur
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p class="empty">Aucun papillon disponible.</p>
+        {% endif %}
+    </section>
+
+    <section class="section">
+        <h2>Papillons réservés par le fournisseur</h2>
+
+        {% if papillons_reserves %}
+            {% for papillon in papillons_reserves %}
+                <article class="card">
+                    <h3>{{ papillon.nom }}</h3>
+
+                    {% if papillon.image_url %}
+                        <img
+                            src="{{ papillon.image_url }}"
+                            alt="{{ papillon.image_description|default:papillon.nom }}"
+                            class="papillon-image"
+                        >
+                    {% endif %}
+
+                    <p><strong>Espèce :</strong> {{ papillon.espece }}</p>
+                    <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
+                    <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
+                    <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
+
+                    <form method="post" action="{% url 'annuler-reservation' papillon.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="danger-button">
+                            Remettre à l’élevage
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p class="empty">Aucun papillon réservé pour le moment.</p>
+        {% endif %}
+    </section>
+</body>
+</html>

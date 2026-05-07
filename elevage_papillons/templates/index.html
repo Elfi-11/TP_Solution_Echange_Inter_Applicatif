@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Élevage papillons</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f6f7fb;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 32px;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .nav {
+            margin: 24px 0;
+        }
+
+        .nav a {
+            display: inline-block;
+            margin-right: 12px;
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-top: 28px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 18px;
+            background-color: #fafafa;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .card p {
+            margin: 8px 0;
+        }
+
+        .papillon-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background-color: #eaf0ff;
+        }
+
+        .reserved {
+            background-color: #ffecec;
+        }
+
+        .available {
+            background-color: #e9f9ee;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Élevage papillons</h1>
+
+        <p>
+            Service source des papillons. Le champ technique
+            <code>adopted</code> indique qu’un papillon a été réservé par le fournisseur.
+        </p>
+
+        <div class="nav">
+            <a href="/api/papillons/">Tous les papillons</a>
+            <a href="/api/papillons/disponibles/">Papillons disponibles</a>
+            <a href="/api/papillons/reserves/">Papillons réservés</a>
+            <a href="/api/health/">Health</a>
+        </div>
+
+        <h2>Papillons de l’élevage</h2>
+
+        {% if papillons %}
+            <div class="grid">
+                {% for papillon in papillons %}
+                    <article class="card">
+                        <h3>{{ papillon.nom }}</h3>
+
+                        {% with image=papillon.images.first %}
+                            {% if image %}
+                                <img src="{{ image.image_url }}" alt="{{ image.description }}" class="papillon-image">
+                            {% endif %}
+                        {% endwith %}
+
+                        <p><strong>Espèce :</strong> {{ papillon.espece }}</p>
+                        <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
+                        <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
+                        <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
+                        <p><strong>Date d’observation :</strong> {{ papillon.date_observation }}</p>
+
+                        {% if papillon.adopted %}
+                            <span class="badge reserved">Réservé par le fournisseur</span>
+                        {% else %}
+                            <span class="badge available">Disponible</span>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Aucun papillon enregistré pour le moment.</p>
+        {% endif %}
+    </main>
+</body>
+</html>
