@@ -1,17 +1,32 @@
-# TP - Échange inter-applicatif
+# TP - Solution d'échange inter-applicatif
 
-Cette version reprend le projet avec une séparation plus claire : **un Django par acteur métier** pour la partie papillons et l'animalerie centrale.
+Ce projet regroupe plusieurs services Django / Django REST Framework séparés pour simuler plusieurs acteurs métier qui communiquent entre eux par API.
 
-## Architecture actuelle
+## Architecture finale
 
 | Port | Service | Rôle |
-|---|---|---|
-| `8000` | Élevage papillons | Source des papillons |
-| `8001` | Fournisseur papillons | Réserve des papillons depuis l'élevage |
-| `8002` | Chats / refuge | Projet externe déjà existant, à lancer séparément |
-| `8004` | Animalerie centrale | Centralise les papillons réservés et les chats adoptés |
+|---:|---|---|
+| 8000 | Élevage papillons | Source des papillons |
+| 8001 | Fournisseur papillons | Réserve des papillons depuis l’élevage |
+| 8002 | Chats abandonnés | Source des chats |
+| 8003 | Refuge | Prend en charge des chats depuis l’application chats abandonnés |
+| 8004 | Animalerie centrale | Centralise les papillons réservés et les chats pris en charge |
 
-La séparation chats/refuge en deux Django sera traitée dans une étape suivante. Pour l'instant, l'animalerie centrale peut déjà lire l'API chats existante sur `http://host.docker.internal:8002/api/cats/`.
+Flux métier :
+
+```txt
+Élevage papillons → Fournisseur papillons → Animalerie centrale
+Chats abandonnés  → Refuge                → Animalerie centrale
+```
+
+L’animalerie centrale lit uniquement les acteurs intermédiaires validés :
+
+```txt
+Fournisseur papillons → papillons réservés
+Refuge                → chats pris en charge
+```
+
+Elle ne lit pas directement les sources brutes `Élevage papillons` et `Chats abandonnés`.
 
 ## Lancement
 
@@ -21,89 +36,175 @@ Depuis la racine du projet :
 docker compose up --build
 ```
 
-Pour repartir avec des bases vides :
+Arrêt simple :
+
+```bash
+docker compose down
+```
+
+Arrêt avec suppression des volumes PostgreSQL :
 
 ```bash
 docker compose down -v
-docker compose up --build
 ```
 
-## URLs web
+Attention : `down -v` supprime les données des bases.
+
+## URLs web et API
 
 ### Élevage papillons - port 8000
 
-- Accueil : http://localhost:8000/
-- Tous les papillons : http://localhost:8000/api/papillons/
-- Papillons disponibles : http://localhost:8000/api/papillons/disponibles/
-- Papillons réservés : http://localhost:8000/api/papillons/reserves/
-- Réserver côté API : `POST http://localhost:8000/api/papillons/<id>/adopter/`
+- Accueil web : http://localhost:8000/
+- API health : http://localhost:8000/api/health/
+- API tous les papillons : http://localhost:8000/api/papillons/
+- API papillons disponibles : http://localhost:8000/api/papillons/disponibles/
+- API papillons réservés : http://localhost:8000/api/papillons/reserves/
+- Réserver un papillon côté élevage : `POST http://localhost:8000/api/papillons/<id>/adopter/`
+- Remettre un papillon à l’élevage : `POST http://localhost:8000/api/papillons/<id>/liberer/`
+
+Le champ technique `adopted=True` indique qu’un papillon est réservé par le fournisseur.
 
 ### Fournisseur papillons - port 8001
 
-- Interface fournisseur : http://localhost:8001/
-- Papillons disponibles via proxy vers l'élevage : http://localhost:8001/api/papillons/disponibles/
-- Papillons réservés localement par le fournisseur : http://localhost:8001/api/papillons-reserves/
-- Réserver via API fournisseur : `POST http://localhost:8001/api/papillons/<id>/reserver/`
+- Accueil web : http://localhost:8001/
+- API papillons disponibles via l’élevage : http://localhost:8001/api/papillons/disponibles/
+- API papillons réservés : http://localhost:8001/api/papillons-reserves/
+- Réserver un papillon : `POST http://localhost:8001/papillons/<id>/reserver/`
+- Annuler une réservation : `POST http://localhost:8001/reservations/<id>/annuler/`
+
+Le fournisseur réserve un papillon depuis l’élevage. La réservation est stockée dans sa propre base, et le papillon passe à `adopted=True` côté élevage.
+
+Au démarrage, le fournisseur relance automatiquement `sync_elevage_reservations` pour réaligner l’état de l’élevage avec ses réservations conservées en base.
+
+### Chats abandonnés - port 8002
+
+- Accueil web : http://localhost:8002/
+- Connexion : http://localhost:8002/accounts/login/
+- API owners : http://localhost:8002/api/owners/
+- API cats : http://localhost:8002/api/cats/
+- Marquer un chat comme pris en charge : `POST http://localhost:8002/api/cats/<id>/adopter/`
+
+Identifiants de test :
+
+```txt
+username: admin_refuge
+password: admin1234
+```
+
+Le champ technique `is_adopted=True` indique qu’un chat a été pris en charge par le refuge.
+
+### Refuge - port 8003
+
+- Accueil web protégé : http://localhost:8003/
+- Connexion : http://localhost:8003/accounts/login/
+- Déconnexion : http://localhost:8003/accounts/logout/
+- API chats disponibles depuis l’application source : http://localhost:8003/api/chats-disponibles/
+- API chats du refuge : http://localhost:8003/api/refuge-cats/
+- Prendre un chat en charge via API : `POST http://localhost:8003/api/chats/<id>/prendre-en-charge/`
+
+Identifiants de test du refuge :
+
+```txt
+username: admin_refuge
+password: admin1234
+```
+
+Ces identifiants sont configurés dans le `.env` avec :
+
+```env
+REFUGE_ADMIN_USERNAME=admin_refuge
+REFUGE_ADMIN_PASSWORD=admin1234
+```
+
+Le refuge prend en charge un chat depuis l’application `Chats abandonnés`. Le chat passe à `is_adopted=True` côté source, et une copie est conservée dans la base du refuge.
 
 ### Animalerie centrale - port 8004
 
-- Catalogue central : http://localhost:8004/catalogue/
-- API espèces : http://localhost:8004/api/especes/
+- Catalogue centralisé : http://localhost:8004/catalogue/
 - API animaux : http://localhost:8004/api/animaux/
-- Bouton web : `Synchroniser le catalogue`
+- API espèces : http://localhost:8004/api/especes/
+- Synchronisation via bouton web : http://localhost:8004/catalogue/
 
-## Flux papillons
+L’animalerie centrale synchronise :
 
-1. L'élevage expose les papillons disponibles sur `8000`.
-2. Le fournisseur, sur `8001`, affiche ces papillons via l'API de l'élevage.
-3. Quand le fournisseur réserve un papillon :
-   - l'élevage passe le papillon à `adopted=True` ;
-   - le fournisseur copie le papillon dans sa table locale `PapillonReserve`.
-4. L'animalerie centrale, sur `8004`, synchronise les papillons réservés depuis le fournisseur.
-5. Les papillons apparaissent dans la table centrale `Animal`.
+- les papillons depuis `http://fournisseur-web:8001/api/papillons-reserves/`
+- les chats depuis `http://refuge-web:8003/api/refuge-cats/`
 
-## Flux chats actuel
+## Variables d'environnement principales
 
-1. Le projet chats/refuge existant tourne sur `8002`.
-2. Les chats avec `is_adopted=True` sont récupérés par l'animalerie centrale lors de la synchronisation.
-3. Ils apparaissent dans `http://localhost:8004/catalogue/`.
+Les variables sont centralisées dans le fichier `.env` à la racine (sur Discord).
+```
 
-## Accès DBeaver
+## Bases PostgreSQL et ports DBeaver
 
-| Base | Host | Port | Database | User | Password |
+| Service | Host | Port | Database | User | Password |
 |---|---|---:|---|---|---|
-| Élevage papillons | `localhost` | `5432` | `elevage_papillons_db` | `elevage` | `elevage` |
-| Fournisseur papillons | `localhost` | `5433` | `fournisseur_papillons_db` | `fournisseur` | `fournisseur` |
-| Animalerie centrale | `localhost` | `5436` | `animalerie_centrale_db` | `animalerie` | `animalerie` |
+| Élevage papillons | localhost | 5432 | elevage_papillons_db | elevage | elevage |
+| Fournisseur papillons | localhost | 5433 | fournisseur_papillons_db | fournisseur | fournisseur |
+| Chats abandonnés | localhost | 5434 | chats_abandons_db | chats | chats |
+| Refuge | localhost | 5435 | refuge_db | refuge | refuge |
+| Animalerie centrale | localhost | 5436 | animalerie_centrale_db | animalerie | animalerie |
 
 ## Commandes utiles
 
-Voir les conteneurs :
-
-```bash
-docker compose ps
-```
-
-Voir les logs :
+Logs :
 
 ```bash
 docker compose logs -f
 ```
 
-Synchroniser l'animalerie centrale à la main :
+Relancer un service :
+
+```bash
+docker compose restart elevage_web
+docker compose restart fournisseur_web
+docker compose restart chats_web
+docker compose restart refuge_web
+docker compose restart animalerie_web
+```
+
+Synchroniser manuellement l’animalerie centrale :
 
 ```bash
 docker compose exec animalerie_web python manage.py sync_catalogue
 ```
 
-Réinitialiser les papillons côté élevage :
+Resynchroniser les réservations fournisseur vers l’élevage :
+
+```bash
+docker compose exec fournisseur_web python manage.py sync_elevage_reservations
+```
+
+Créer ou mettre à jour l’utilisateur du refuge :
+
+```bash
+docker compose exec refuge_web python manage.py seed_users
+```
+
+Seed papillons :
 
 ```bash
 docker compose exec elevage_web python manage.py seed_papillons
 ```
 
-## Notes de conception
+Seed chats :
 
-- Le champ `adopted` du modèle `Papillon` est conservé pour limiter les changements dans le modèle source.
-- Dans l'interface, ce champ est interprété comme : `Papillon réservé par le fournisseur`.
-- L'animalerie centrale ne modifie pas directement les sources. Elle synchronise les animaux déjà sélectionnés par les acteurs intermédiaires.
+```bash
+docker compose exec chats_web python manage.py seed_data
+```
+
+## Notes techniques
+
+Les noms internes Docker utilisés dans les URLs HTTP évitent les underscores, car Django peut refuser certains hosts avec `_`.
+
+Exemples corrects :
+
+```txt
+http://elevage-web:8000
+http://fournisseur-web:8001
+http://chats-web:8002
+http://refuge-web:8003
+http://animalerie-web:8004
+```
+
+Les noms de services Docker peuvent contenir des underscores, mais les URLs HTTP internes utilisées par Django passent par des alias avec tirets.

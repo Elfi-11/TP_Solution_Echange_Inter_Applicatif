@@ -4,10 +4,10 @@ services:
     working_dir: /app
     command: >
       sh -c "while ! nc -z elevage_db 5432; do sleep 1; done &&
-            python manage.py makemigrations papillons &&
-            python manage.py migrate &&
-            python manage.py seed_papillons &&
-            python manage.py runserver 0.0.0.0:8000"
+             python manage.py makemigrations papillons &&
+             python manage.py migrate &&
+             python manage.py seed_papillons &&
+             python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     volumes:
@@ -41,10 +41,11 @@ services:
     working_dir: /app
     command: >
       sh -c "while ! nc -z fournisseur_db 5432; do sleep 1; done &&
-            python manage.py makemigrations reservations &&
-            python manage.py migrate &&
-            python manage.py sync_elevage_reservations &&
-            python manage.py runserver 0.0.0.0:8001"
+             while ! nc -z elevage-web 8000; do sleep 1; done &&
+             python manage.py makemigrations reservations &&
+             python manage.py migrate &&
+             python manage.py sync_elevage_reservations &&
+             python manage.py runserver 0.0.0.0:8001"
     ports:
       - "8001:8001"
     volumes:
@@ -75,6 +76,88 @@ services:
     volumes:
       - fournisseur_db_data:/var/lib/postgresql/data
 
+  chats_web:
+    build: .
+    working_dir: /app
+    command: >
+      sh -c "while ! nc -z chats_db 5432; do sleep 1; done &&
+             python manage.py makemigrations cats &&
+             python manage.py migrate &&
+             python manage.py seed_users &&
+             python manage.py seed_data &&
+             python manage.py runserver 0.0.0.0:8002"
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./chats_abandons:/app
+    environment:
+      POSTGRES_DB: ${CHATS_POSTGRES_DB}
+      POSTGRES_USER: ${CHATS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${CHATS_POSTGRES_PASSWORD}
+      POSTGRES_HOST: chats_db
+      POSTGRES_PORT: 5432
+      TRANSFER_AUTHORIZED_USERNAME: ${TRANSFER_AUTHORIZED_USERNAME}
+      TRANSFER_AUTHORIZED_PASSWORD: ${TRANSFER_AUTHORIZED_PASSWORD}
+    depends_on:
+      - chats_db
+    networks:
+      default:
+        aliases:
+          - chats-web
+
+  chats_db:
+    image: postgres:16
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: ${CHATS_POSTGRES_DB}
+      POSTGRES_USER: ${CHATS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${CHATS_POSTGRES_PASSWORD}
+    volumes:
+      - chats_db_data:/var/lib/postgresql/data
+
+  refuge_web:
+    build: .
+    working_dir: /app
+    command: >
+      sh -c "while ! nc -z refuge_db 5432; do sleep 1; done &&
+             while ! nc -z chats-web 8002; do sleep 1; done &&
+             python manage.py makemigrations refuge_app &&
+             python manage.py migrate &&
+             python manage.py seed_users &&
+             python manage.py runserver 0.0.0.0:8003"
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./refuge:/app
+    environment:
+      POSTGRES_DB: ${REFUGE_POSTGRES_DB}
+      POSTGRES_USER: ${REFUGE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${REFUGE_POSTGRES_PASSWORD}
+      POSTGRES_HOST: refuge_db
+      POSTGRES_PORT: 5432
+      CHATS_API_BASE_URL: ${CHATS_API_BASE_URL}
+      REFUGE_ADMIN_USERNAME: ${REFUGE_ADMIN_USERNAME}
+      REFUGE_ADMIN_PASSWORD: ${REFUGE_ADMIN_PASSWORD}
+    depends_on:
+      - refuge_db
+      - chats_web
+    networks:
+      default:
+        aliases:
+          - refuge-web
+
+  refuge_db:
+    image: postgres:16
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: ${REFUGE_POSTGRES_DB}
+      POSTGRES_USER: ${REFUGE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${REFUGE_POSTGRES_PASSWORD}
+    volumes:
+      - refuge_db_data:/var/lib/postgresql/data
+
   animalerie_web:
     build: .
     working_dir: /app
@@ -94,10 +177,15 @@ services:
       POSTGRES_HOST: animalerie_db
       POSTGRES_PORT: 5432
       FOURNISSEUR_PAPILLONS_API_URL: ${FOURNISSEUR_PAPILLONS_API_URL}
-      CATS_API_URL: ${CATS_API_URL}
+      REFUGE_CATS_API_URL: ${REFUGE_CATS_API_URL}
     depends_on:
       - animalerie_db
       - fournisseur_web
+      - refuge_web
+    networks:
+      default:
+        aliases:
+          - animalerie-web
 
   animalerie_db:
     image: postgres:16
@@ -113,4 +201,6 @@ services:
 volumes:
   elevage_db_data:
   fournisseur_db_data:
+  chats_db_data:
+  refuge_db_data:
   animalerie_db_data:

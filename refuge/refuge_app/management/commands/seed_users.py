@@ -1,0 +1,29 @@
+import os
+
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+
+
+class Command(BaseCommand):
+    help = "Create or update the refuge admin user in an idempotent way."
+
+    def handle(self, *args, **options):
+        User = get_user_model()
+
+        username = os.getenv("REFUGE_ADMIN_USERNAME", "admin_refuge")
+        password = os.getenv("REFUGE_ADMIN_PASSWORD", "admin1234")
+
+        user, created = User.objects.update_or_create(
+            username=username,
+            defaults={
+                "is_staff": True,
+                "is_superuser": True,
+            },
+        )
+        user.set_password(password)
+        user.save()
+
+        if created:
+            self.stdout.write(self.style.SUCCESS(f"Created refuge user: {username}"))
+        else:
+            self.stdout.write(self.style.SUCCESS(f"Updated refuge user: {username}"))

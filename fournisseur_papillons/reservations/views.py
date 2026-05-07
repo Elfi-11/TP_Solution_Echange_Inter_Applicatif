@@ -33,6 +33,9 @@ def _reserver_depuis_elevage(papillon_id):
 
 
 def _save_reservation(papillon):
+    images = papillon.get("images", [])
+    first_image = images[0] if images else {}
+
     reservation, _ = PapillonReserve.objects.update_or_create(
         papillon_source_id=papillon["id"],
         defaults={
@@ -42,6 +45,8 @@ def _save_reservation(papillon):
             "date_observation": papillon.get("date_observation") or None,
             "provenance": papillon.get("provenance", ""),
             "prix": papillon.get("prix"),
+            "image_url": first_image.get("image_url", ""),
+            "image_description": first_image.get("description", ""),
             "source": "elevage_papillons",
         },
     )

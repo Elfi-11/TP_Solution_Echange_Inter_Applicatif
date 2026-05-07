@@ -15,6 +15,8 @@ class PapillonReserveSerializer(serializers.ModelSerializer):
             "date_observation",
             "provenance",
             "prix",
+            "image_url",
+            "image_description",
             "source",
             "reserved_at",
         )

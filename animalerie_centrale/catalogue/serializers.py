@@ -18,7 +18,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Animal
         fields = (
-            "id", "nom", "race", "age", "couleur", "particularite", "espece",
+            "id", "nom", "race", "age", "couleur", "image_url", "particularite", "espece",
             "espece_id", "prix", "provenance", "pays", "continent", "regime_alim",
             "taille_aquarium", "source", "source_id", "adopted", "created_at", "updated_at",
         )

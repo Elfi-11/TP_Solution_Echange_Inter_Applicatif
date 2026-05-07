@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = "animalerie_centrale_config-dev-secret"
+SECRET_KEY = "refuge_config-dev-secret"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
@@ -15,7 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "catalogue",
+    "refuge_app",
 ]
 
 MIDDLEWARE = [
@@ -28,12 +27,12 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "animalerie_centrale_config.urls"
+ROOT_URLCONF = "refuge_config.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -45,17 +44,17 @@ TEMPLATES = [
     }
 ]
 
-WSGI_APPLICATION = "animalerie_centrale_config.wsgi.application"
-ASGI_APPLICATION = "animalerie_centrale_config.asgi.application"
+WSGI_APPLICATION = "refuge_config.wsgi.application"
+ASGI_APPLICATION = "refuge_config.asgi.application"
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "animalerie_centrale_db"),
-        "USER": os.environ.get("POSTGRES_USER", "animalerie"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "animalerie"),
-        "HOST": os.environ.get("POSTGRES_HOST", "animalerie_db"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "NAME": os.getenv("POSTGRES_DB", "refuge_db"),
+        "USER": os.getenv("POSTGRES_USER", "refuge"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "refuge"),
+        "HOST": os.getenv("POSTGRES_HOST", "refuge_db"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
 
@@ -67,8 +66,8 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-FOURNISSEUR_PAPILLONS_API_URL = os.environ.get(
-    "FOURNISSEUR_PAPILLONS_API_URL",
-    "http://localhost:8001/api/papillons-reserves/",
-)
-REFUGE_CATS_API_URL = os.environ.get("REFUGE_CATS_API_URL", "http://localhost:8003/api/refuge-cats/")
+CHATS_API_BASE_URL = os.environ.get("CHATS_API_BASE_URL", "http://localhost:8002")
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"

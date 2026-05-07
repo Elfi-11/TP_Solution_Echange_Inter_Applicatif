@@ -14,6 +14,7 @@ class Animal(models.Model):
     race = models.CharField(max_length=120, blank=True)
     age = models.PositiveIntegerField(null=True, blank=True)
     couleur = models.CharField(max_length=80, blank=True)
+    image_url = models.URLField(max_length=500, blank=True)
     particularite = models.TextField(blank=True)
     prix = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     provenance = models.CharField(max_length=120, blank=True)

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chats abandonnés</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; color: #222; }
+        .page-container { width: min(1400px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0; }
+        h1 { color: #333; margin-bottom: 16px; }
+        .links { margin-bottom: 30px; }
+        .links a { display: inline-block; padding: 10px 14px; background: #2f6fed; color: white; text-decoration: none; border-radius: 6px; margin-right: 8px; }
+        .container { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+        .card { position: relative; background: white; padding: 18px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
+        .adopted-badge { position: absolute; top: 12px; right: 12px; padding: 6px 10px; border-radius: 999px; background: #e8f1ff; font-size: 13px; }
+        .cat-name { font-weight: bold; font-size: 18px; }
+        .muted { color: #666; font-size: 14px; }
+        .cat-image { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 12px; background: #eee; }
+        .owner-cat-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .owner-cat-image { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; background: #eee; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } body { margin: 20px; } }
+    </style>
+</head>
+<body>
+<main class="page-container">
+    <h1>Chats abandonnés</h1>
+    <p>Service source des chats. Le refuge sélectionne les chats via l’API de ce service.</p>
+
+    <div class="links">
+        <a href="/api/">API Root</a>
+        <a href="/api/owners/">Owners API</a>
+        <a href="/api/cats/">Cats API</a>
+    </div>
+
+    <div class="container">
+        <section>
+            <h2>Propriétaires</h2>
+            {% for owner in owners %}
+                <div class="card">
+                    <h3>{{ owner.first_name }}</h3>
+                    <p class="muted">{{ owner.email }}</p>
+                    <strong>Chats associés :</strong>
+                    <ul>
+                        {% for cat in owner.cats.all %}
+                            <li class="owner-cat-item">
+                                {% if cat.image_url %}<img class="owner-cat-image" src="{{ cat.image_url }}" alt="Photo de {{ cat.name }}">{% endif %}
+                                <span>{{ cat.name }} — {{ cat.age }} ans — {{ cat.breed }}</span>
+                            </li>
+                        {% empty %}
+                            <li>Aucun chat associé</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% empty %}
+                <p>Aucun propriétaire trouvé.</p>
+            {% endfor %}
+        </section>
+
+        <section>
+            <h2>Chats</h2>
+            {% for cat in cats %}
+                <div class="card">
+                    {% if cat.is_adopted %}<span class="adopted-badge">Pris en charge par le refuge</span>{% endif %}
+                    {% if cat.image_url %}<img class="cat-image" src="{{ cat.image_url }}" alt="Photo de {{ cat.name }}">{% endif %}
+                    <p class="cat-name">{{ cat.name }}</p>
+                    <p>Âge : {{ cat.age }} ans</p>
+                    <p>Race : {{ cat.breed }}</p>
+                    <p>Provenance : {{ cat.provenance }}</p>
+                    <p>Particularité : {{ cat.particularity }}</p>
+                    <p class="muted">Owner : {{ cat.owner.first_name }} — {{ cat.owner.email }}</p>
+                </div>
+            {% empty %}
+                <p>Aucun chat disponible.</p>
+            {% endfor %}
+        </section>
+    </div>
+</main>
+</body>
+</html>

@@ -14,7 +14,7 @@ def as_list(payload):
 
 
 class Command(BaseCommand):
-    help = "Synchronise l'animalerie centrale depuis le fournisseur papillons et l'application chats."
+    help = "Synchronise l'animalerie centrale depuis le fournisseur papillons et le refuge."
 
     def handle(self, *args, **options):
         papillon_espece, _ = Espece.objects.get_or_create(nom="Papillon")
@@ -50,6 +50,7 @@ class Command(BaseCommand):
                     "race": papillon.get("espece", ""),
                     "age": None,
                     "couleur": papillon.get("couleur", ""),
+                    "image_url": papillon.get("image_url", ""),
                     "particularite": "",
                     "prix": papillon.get("prix"),
                     "provenance": papillon.get("provenance", ""),
@@ -67,21 +68,18 @@ class Command(BaseCommand):
 
     def sync_chats(self, chat_espece):
         try:
-            response = requests.get(settings.CATS_API_URL, timeout=5)
+            response = requests.get(settings.REFUGE_CATS_API_URL, timeout=5)
             response.raise_for_status()
             cats = as_list(response.json())
         except requests.RequestException as error:
-            self.stdout.write(self.style.WARNING(f"Chats non synchronises : {error}"))
+            self.stdout.write(self.style.WARNING(f"Chats non synchronises depuis le refuge : {error}"))
             return
 
         created_count = 0
         updated_count = 0
         for cat in cats:
-            if not cat.get("is_adopted", False):
-                continue
-
             _, created = Animal.objects.update_or_create(
-                source="chats_api",
+                source="refuge",
                 source_id=cat["id"],
                 defaults={
                     "espece": chat_espece,
@@ -89,6 +87,7 @@ class Command(BaseCommand):
                     "race": cat.get("breed", ""),
                     "age": cat.get("age"),
                     "couleur": "",
+                    "image_url": cat.get("image_url", ""),
                     "particularite": cat.get("particularity", ""),
                     "prix": None,
                     "provenance": cat.get("provenance", ""),
@@ -102,4 +101,4 @@ class Command(BaseCommand):
             created_count += 1 if created else 0
             updated_count += 0 if created else 1
 
-        self.stdout.write(self.style.SUCCESS(f"Chats synchronises : {created_count} cree(s), {updated_count} mis a jour."))
+        self.stdout.write(self.style.SUCCESS(f"Chats synchronises depuis le refuge : {created_count} cree(s), {updated_count} mis a jour."))
