@@ -21,6 +21,8 @@ services:
 
   elevage_db:
     image: postgres:16
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: Inter_Applicatif
       POSTGRES_USER: admin
@@ -49,6 +51,8 @@ services:
 
   animalerie_db:
     image: postgres:16
+    ports:
+      - "5433:5432"
     environment:
       POSTGRES_DB: animalerie_db
       POSTGRES_USER: animalerie
