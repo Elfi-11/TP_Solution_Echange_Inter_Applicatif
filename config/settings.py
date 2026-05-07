@@ -6,6 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = ["*"]
+CATS_API_URL = os.getenv("CATS_API_URL", "http://host.docker.internal:8002/api/cats/")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

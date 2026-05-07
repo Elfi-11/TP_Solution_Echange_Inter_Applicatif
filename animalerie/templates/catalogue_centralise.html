@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Catalogue centralisé</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f6f7fb;
+            color: #222;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .catalogue-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .catalogue-column {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .catalogue-column h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 12px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: #fafafa;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            margin: 6px 0;
+        }
+
+        .empty-message {
+            color: #777;
+            font-style: italic;
+        }
+
+        @media (max-width: 800px) {
+            .catalogue-grid {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Catalogue centralisé</h1>
+
+    <div class="catalogue-grid">
+
+        <section class="catalogue-column">
+            <h2>Papillons</h2>
+
+            {% if papillons %}
+                {% for papillon in papillons %}
+                    <article class="card">
+                        <h3>{{ papillon.nom }}</h3>
+
+                        <p><strong>Espèce :</strong> {{ papillon.espece }}</p>
+                        <p><strong>Couleur :</strong> {{ papillon.couleur }}</p>
+                        <p><strong>Date d’observation :</strong> {{ papillon.date_observation }}</p>
+                        <p><strong>Provenance :</strong> {{ papillon.provenance }}</p>
+                        <p><strong>Prix :</strong> {{ papillon.prix }} €</p>
+
+                        {% if papillon.adopted %}
+                            <p><strong>Statut :</strong> Adopté</p>
+                        {% else %}
+                            <p><strong>Statut :</strong> Disponible</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p class="empty-message">Aucun papillon disponible pour le moment.</p>
+            {% endif %}
+        </section>
+
+        <section class="catalogue-column">
+            <h2>Chats</h2>
+
+            {% if cats %}
+                {% for cat in cats %}
+                    <article class="card">
+                        <h3>{{ cat.name }}</h3>
+
+                        {% if cat.breed %}
+                            <p><strong>Race :</strong> {{ cat.breed }}</p>
+                        {% endif %}
+
+                        {% if cat.age %}
+                            <p><strong>Âge :</strong> {{ cat.age }} ans</p>
+                        {% endif %}
+
+                        {% if cat.provenance %}
+                            <p><strong>Provenance :</strong> {{ cat.provenance }}</p>
+                        {% endif %}
+
+                        {% if cat.particularity %}
+                            <p><strong>Particularité :</strong> {{ cat.particularity }}</p>
+                        {% endif %}
+
+                        {% if cat.is_adopted %}
+                            <p><strong>Statut :</strong> Adopté</p>
+                        {% else %}
+                            <p><strong>Statut :</strong> Disponible</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p class="empty-message">Aucun chat récupéré pour le moment.</p>
+            {% endif %}
+        </section>
+
+    </div>
+</body>
+</html>

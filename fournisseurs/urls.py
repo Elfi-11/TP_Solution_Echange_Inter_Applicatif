@@ -1,10 +1,12 @@
 from django.urls import path
+from . import views
 
 from .views import (
     PapillonAdopterView,
     PapillonDisponibleListView,
     PapillonListCreateView,
     health,
+    catalogue_centralise,
 )
 
 urlpatterns = [
@@ -16,4 +18,5 @@ urlpatterns = [
         name="papillon-disponible-list",
     ),
     path("papillons/<int:pk>/adopter/", PapillonAdopterView.as_view(), name="papillon-adopter"),
+    path("catalogue/", views.catalogue_centralise, name="catalogue-centralise"),
 ]

@@ -6,7 +6,7 @@ from fournisseurs.models import ImagePapillon, Papillon, SituationGeographique
 
 
 class Command(BaseCommand):
-    help = "Insere un jeu de donnees de papillons pour le TP."
+    help = "Insere ou met a jour un jeu de donnees de papillons pour le TP."
 
     def handle(self, *args, **options):
         donnees = [
@@ -17,6 +17,12 @@ class Command(BaseCommand):
                 "date_observation": date(2026, 5, 1),
                 "provenance": "Lyon",
                 "prix": 12.50,
+                "image_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSw_fiBbI-IdqcJX8Bhp3fk2PZke3xMylWFfA&s",
+                "description": "Machaon ailes ouvertes",
+                "pays": "France",
+                "region": "Auvergne-Rhone-Alpes",
+                "latitude": 45.764043,
+                "longitude": 4.835659,
             },
             {
                 "nom": "Paon du jour",
@@ -25,6 +31,12 @@ class Command(BaseCommand):
                 "date_observation": date(2026, 5, 2),
                 "provenance": "Grenoble",
                 "prix": 15.00,
+                "image_url": "https://lamaisondupapillon.org/wp-content/uploads/2018/06/papillon-paon-du-jour-sureau-01547.jpg",
+                "description": "Paon du jour sur feuille",
+                "pays": "France",
+                "region": "Auvergne-Rhone-Alpes",
+                "latitude": 45.188529,
+                "longitude": 5.724524,
             },
             {
                 "nom": "Flambe",
@@ -33,6 +45,12 @@ class Command(BaseCommand):
                 "date_observation": date(2026, 5, 3),
                 "provenance": "Marseille",
                 "prix": 18.90,
+                "image_url": "https://www.insectes-net.fr/flambe/images/flamb2gf.JPG",
+                "description": "Flambe en vol",
+                "pays": "France",
+                "region": "Provence-Alpes-Cote d'Azur",
+                "latitude": 43.296482,
+                "longitude": 5.369780,
             },
             {
                 "nom": "Morpho bleu",
@@ -41,73 +59,55 @@ class Command(BaseCommand):
                 "date_observation": date(2026, 5, 4),
                 "provenance": "Cayenne",
                 "prix": 29.99,
+                "image_url": "https://www.prfrp.org/wp-content/uploads/2021/06/DSC_5811-Blue-Morpho-Butterfly.jpg",
+                "description": "Morpho bleu sur feuille",
+                "pays": "Guyane francaise",
+                "region": "Cayenne",
+                "latitude": 4.922420,
+                "longitude": -52.313453,
             },
         ]
 
-        ImagePapillon.objects.all().delete()
-        SituationGeographique.objects.all().delete()
-        Papillon.objects.all().delete()
-        papillons = [Papillon(**item) for item in donnees]
-        Papillon.objects.bulk_create(papillons)
+        created_count = 0
+        updated_count = 0
 
-        papillons = list(Papillon.objects.order_by("id"))
+        for item in donnees:
+            papillon, created = Papillon.objects.update_or_create(
+                nom=item["nom"],
+                espece=item["espece"],
+                defaults={
+                    "couleur": item["couleur"],
+                    "date_observation": item["date_observation"],
+                    "provenance": item["provenance"],
+                    "prix": item["prix"],
+                },
+            )
 
-        ImagePapillon.objects.bulk_create(
-            [
-                ImagePapillon(
-                    papillon=papillons[0],
-                    image_url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSw_fiBbI-IdqcJX8Bhp3fk2PZke3xMylWFfA&s",
-                    description="Machaon ailes ouvertes",
-                ),
-                ImagePapillon(
-                    papillon=papillons[1],
-                    image_url="https://lamaisondupapillon.org/wp-content/uploads/2018/06/papillon-paon-du-jour-sureau-01547.jpg",
-                    description="Paon du jour sur feuille",
-                ),
-                ImagePapillon(
-                    papillon=papillons[2],
-                    image_url="https://www.insectes-net.fr/flambe/images/flamb2gf.JPG",
-                    description="Flambe en vol",
-                ),
-                ImagePapillon(
-                    papillon=papillons[3],
-                    image_url="https://www.prfrp.org/wp-content/uploads/2021/06/DSC_5811-Blue-Morpho-Butterfly.jpg",
-                    description="Morpho bleu sur feuille",
-                ),
-            ]
+            ImagePapillon.objects.update_or_create(
+                papillon=papillon,
+                defaults={
+                    "image_url": item["image_url"],
+                    "description": item["description"],
+                },
+            )
+
+            SituationGeographique.objects.update_or_create(
+                papillon=papillon,
+                defaults={
+                    "pays": item["pays"],
+                    "region": item["region"],
+                    "latitude": item["latitude"],
+                    "longitude": item["longitude"],
+                },
+            )
+
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Seed papillons termine : {created_count} cree(s), {updated_count} mis a jour."
+            )
         )
-
-        SituationGeographique.objects.bulk_create(
-            [
-                SituationGeographique(
-                    papillon=papillons[0],
-                    pays="France",
-                    region="Auvergne-Rhone-Alpes",
-                    latitude=45.764043,
-                    longitude=4.835659,
-                ),
-                SituationGeographique(
-                    papillon=papillons[1],
-                    pays="France",
-                    region="Auvergne-Rhone-Alpes",
-                    latitude=45.188529,
-                    longitude=5.724524,
-                ),
-                SituationGeographique(
-                    papillon=papillons[2],
-                    pays="France",
-                    region="Provence-Alpes-Cote d'Azur",
-                    latitude=43.296482,
-                    longitude=5.369780,
-                ),
-                SituationGeographique(
-                    papillon=papillons[3],
-                    pays="Guyane francaise",
-                    region="Cayenne",
-                    latitude=4.922420,
-                    longitude=-52.313453,
-                ),
-            ]
-        )
-
-        self.stdout.write(self.style.SUCCESS("Jeu de donnees papillons/images/situations insere."))

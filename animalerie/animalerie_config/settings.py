@@ -6,6 +6,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "animalerie-dev-secret"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
+CATS_API_URL = os.getenv("CATS_API_URL", "http://host.docker.internal:8002/api/cats/")
+
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "host.docker.internal",
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -16,6 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "adoptions",
+    "fournisseurs",
 ]
 
 MIDDLEWARE = [
