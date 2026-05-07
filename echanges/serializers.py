@@ -27,8 +27,8 @@ class PapillonSerializer(serializers.ModelSerializer):
             "espece",
             "couleur",
             "date_observation",
-            "lieu",
-            "est_adopte",
+            "provenance",
+            "adopted",
             "images",
             "situations",
         )
