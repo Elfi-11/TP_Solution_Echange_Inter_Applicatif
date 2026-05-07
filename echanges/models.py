@@ -6,8 +6,9 @@ class Papillon(models.Model):
     espece = models.CharField(max_length=120)
     couleur = models.CharField(max_length=80)
     date_observation = models.DateField()
-    lieu = models.CharField(max_length=120)
-    est_adopte = models.BooleanField(default=False)
+    provenance = models.CharField(max_length=120)
+    prix = models.DecimalField(max_digits=10, decimal_places=2)
+    adopted = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.nom} ({self.espece})"
