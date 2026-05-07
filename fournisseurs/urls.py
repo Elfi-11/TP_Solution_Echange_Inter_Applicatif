@@ -9,6 +9,7 @@ from .views import (
     catalogue_centralise,
 )
 
+#test
 urlpatterns = [
     path("health/", health, name="health"),
     path("papillons/", PapillonListCreateView.as_view(), name="papillon-list-create"),
