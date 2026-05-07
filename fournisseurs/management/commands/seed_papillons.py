@@ -2,7 +2,7 @@ from datetime import date
 
 from django.core.management.base import BaseCommand
 
-from echanges.models import ImagePapillon, Papillon, SituationGeographique
+from fournisseurs.models import ImagePapillon, Papillon, SituationGeographique
 
 
 class Command(BaseCommand):
@@ -16,6 +16,7 @@ class Command(BaseCommand):
                 "couleur": "Jaune et noir",
                 "date_observation": date(2026, 5, 1),
                 "provenance": "Lyon",
+                "prix": 12.50,
             },
             {
                 "nom": "Paon du jour",
@@ -23,6 +24,7 @@ class Command(BaseCommand):
                 "couleur": "Rouge et bleu",
                 "date_observation": date(2026, 5, 2),
                 "provenance": "Grenoble",
+                "prix": 15.00,
             },
             {
                 "nom": "Flambe",
@@ -30,6 +32,7 @@ class Command(BaseCommand):
                 "couleur": "Creme et noir",
                 "date_observation": date(2026, 5, 3),
                 "provenance": "Marseille",
+                "prix": 18.90,
             },
             {
                 "nom": "Morpho bleu",
@@ -37,6 +40,7 @@ class Command(BaseCommand):
                 "couleur": "Bleu iridescent",
                 "date_observation": date(2026, 5, 4),
                 "provenance": "Cayenne",
+                "prix": 29.99,
             },
         ]
 

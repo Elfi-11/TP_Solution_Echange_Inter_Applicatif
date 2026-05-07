@@ -33,7 +33,7 @@
                             <h3>${p.nom} (${p.espece})</h3>
                             <p><strong>Couleur:</strong> ${p.couleur}</p>
                             <p><strong>Date:</strong> ${p.date_observation}</p>
-                            <p><strong>Lieu libre:</strong> ${p.lieu}</p>
+                            <p><strong>Lieu libre:</strong> ${p.provenance}</p>
                             <p><strong>Geo:</strong> ${sit ? `${sit.pays}, ${sit.region} [${sit.latitude}, ${sit.longitude}]` : "N/A"}</p>
                             ${image ? `<img src="${image.image_url}" alt="${p.nom}">` : ""}
                         </div>

@@ -5,9 +5,9 @@ from .models import ImagePapillon, Papillon, SituationGeographique
 
 @admin.register(Papillon)
 class PapillonAdmin(admin.ModelAdmin):
-    list_display = ("id", "nom", "espece", "couleur", "date_observation", "lieu", "est_adopte")
-    search_fields = ("nom", "espece", "couleur", "lieu")
-    list_filter = ("date_observation", "couleur", "est_adopte")
+    list_display = ("id", "nom", "espece", "couleur", "date_observation", "provenance", "prix", "adopted")
+    search_fields = ("nom", "espece", "couleur", "provenance")
+    list_filter = ("date_observation", "couleur", "adopted", "prix")
 
 
 @admin.register(ImagePapillon)

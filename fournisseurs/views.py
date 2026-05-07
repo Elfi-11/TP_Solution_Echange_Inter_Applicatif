@@ -28,7 +28,7 @@ class PapillonDisponibleListView(generics.ListAPIView):
 
     def get_queryset(self):
         return (
-            Papillon.objects.filter(est_adopte=False)
+            Papillon.objects.filter(adopted=False)
             .prefetch_related("images", "situations")
             .all()
         )
@@ -37,14 +37,14 @@ class PapillonDisponibleListView(generics.ListAPIView):
 class PapillonAdopterView(APIView):
     def post(self, request, pk):
         papillon = get_object_or_404(Papillon, pk=pk)
-        if papillon.est_adopte:
+        if papillon.adopted:
             return Response(
                 {"detail": "Papillon deja adopte."},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        papillon.est_adopte = True
-        papillon.save(update_fields=["est_adopte"])
+        papillon.adopted = True
+        papillon.save(update_fields=["adopted"])
 
         data = PapillonSerializer(papillon).data
         return Response(data, status=status.HTTP_200_OK)
