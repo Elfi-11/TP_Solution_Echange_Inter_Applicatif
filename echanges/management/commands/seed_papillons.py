@@ -15,28 +15,28 @@ class Command(BaseCommand):
                 "espece": "Papilio machaon",
                 "couleur": "Jaune et noir",
                 "date_observation": date(2026, 5, 1),
-                "lieu": "Lyon",
+                "provenance": "Lyon",
             },
             {
                 "nom": "Paon du jour",
                 "espece": "Aglais io",
                 "couleur": "Rouge et bleu",
                 "date_observation": date(2026, 5, 2),
-                "lieu": "Grenoble",
+                "provenance": "Grenoble",
             },
             {
                 "nom": "Flambe",
                 "espece": "Iphiclides podalirius",
                 "couleur": "Creme et noir",
                 "date_observation": date(2026, 5, 3),
-                "lieu": "Marseille",
+                "provenance": "Marseille",
             },
             {
                 "nom": "Morpho bleu",
                 "espece": "Morpho menelaus",
                 "couleur": "Bleu iridescent",
                 "date_observation": date(2026, 5, 4),
-                "lieu": "Cayenne",
+                "provenance": "Cayenne",
             },
         ]
 
